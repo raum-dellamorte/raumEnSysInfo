@@ -2,9 +2,9 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use camera::Camera;
-use input::Handler;
-use loader::Loader;
+use Display;
+use Handler;
+use Loader;
 use text::{TextMgr, }; // RFontType, 
 use texture::Texture;
 use util::rmatrix::Matrix4f;
@@ -13,26 +13,46 @@ use util::rmatrix::Matrix4f;
 pub struct GameMgr {
   pub handler: Arc<Mutex<Handler>>,
   pub loader: Arc<Mutex<Loader>>,
-  pub camera: Arc<Mutex<Camera>>,
+  pub display: Arc<Mutex<Display>>,
   pub textmgr: Option<Arc<Mutex<TextMgr>>>,
   pub textures: Arc<Mutex<HashMap<String, Arc<Texture>>>>,
   pub view_mat: Matrix4f, // not sure if I need this
 }
-
 impl GameMgr {
   pub fn new() -> Self {
     let loader = Arc::new(Mutex::new(Loader::new()));
     let handler = Arc::new(Mutex::new(Handler::new()));
-    let camera = Arc::new(Mutex::new(Camera::new(handler.clone())));
+    let display = Arc::new(Mutex::new(Display::new()));
     let textmgr = TextMgr::new();
     GameMgr {
       handler: handler,
       loader: loader,
-      camera: camera,
+      display: display,
       textmgr: Some(Arc::new(Mutex::new(textmgr))),
       textures: Arc::new(Mutex::new(HashMap::new())),
       view_mat: Matrix4f::new(),
     }
+  }
+  pub fn update_size(&mut self, dimensions: (u32, u32)) {
+    {
+      let mut d = self.display.lock().unwrap();
+      d.update_size(dimensions);
+    }
+    let mgr = self.clone();
+    let _textmgr = self.textmgr.take().unwrap();
+    {
+      let mut textmgr = _textmgr.lock().unwrap();
+      textmgr.update_size(mgr);
+    }
+    self.textmgr = Some(_textmgr);
+  }
+  pub fn aspect_ratio(&self) -> f32 {
+    let d = self.display.lock().unwrap();
+    d.aspect_ratio
+  }
+  pub fn dimensions(&self) -> (u32, u32) {
+    let d = self.display.lock().unwrap();
+    d.dimensions()
   }
   pub fn handler_do<F>(&mut self, f: F)
     where F: Fn(&mut Handler) -> ()

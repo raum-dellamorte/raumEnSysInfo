@@ -149,9 +149,6 @@ impl Shader {
     println!("Uniform name not found: {}", name);
     -1 as GLint
   }
-  pub fn load_proj_mat(&self, matrix: &Matrix4f) {
-    self.load_matrix("u_Projection", matrix);
-  }
   pub fn load_int(&self, name: &str, value: GLint) { unsafe {
     Uniform1i(self.get_uniform_id(name), value);
   }}
@@ -232,7 +229,7 @@ impl Shader {
           buffer.as_mut_ptr() as *mut i8);
         println!("Compiler log (length: {}):\n{}", length,
           from_utf8(CStr::from_ptr(transmute(&buffer)).to_bytes()).unwrap());
-      } else { println!("Shader compiled"); }
+      } // else { println!("Shader compiled"); }
     }
   } self }
   pub fn link(&mut self) -> &mut Self { unsafe {
@@ -240,7 +237,7 @@ impl Shader {
     let program = CreateProgram();
     self.program = program;
     for shader in &self.shaders {
-      println!("Attach Shader: {} {}", shader.kind(), shader.id);
+      // println!("Attach Shader: {} {}", shader.kind(), shader.id);
       AttachShader(program, shader.id);
     }
     // self.start();
@@ -262,7 +259,7 @@ impl Shader {
       println!("Linker log (length: {}):\n{}", length,
         from_utf8(CStr::from_ptr(transmute(&buffer)).to_bytes()).unwrap());
     } else {
-      println!("Model shader linked. Program: {}", program);
+      println!("{} shader linked. Program: {}", self.name, program);
     }
     self.done = true;
     self

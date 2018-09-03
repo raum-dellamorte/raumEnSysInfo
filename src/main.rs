@@ -7,7 +7,7 @@ extern crate glutin;
 #[macro_use] extern crate nom;
 extern crate image;
 extern crate time;
-extern crate sysinfo;
+extern crate subprocess;
 
 use gl::*;
 // use std::os::raw::c_void;
@@ -17,7 +17,7 @@ use glutin::GlContext;
 // const CVOID: *const c_void = 0 as *const c_void;
 
 // in project stuff
-pub mod camera; // I think I still need this for storing window dimensions
+pub mod display; // I think I still need this for storing window dimensions
 pub mod gamemgr;
 pub mod input;
 pub mod loader; // Can be simplified
@@ -28,7 +28,7 @@ pub mod texture; // needed for font atlas but needed things can be ported out
 pub mod timer;
 pub mod util;
 
-pub use camera::Camera;
+pub use display::Display;
 pub use input::Handler;
 pub use loader::Loader;
 pub use render::{RenderMgr, };
@@ -60,18 +60,20 @@ fn main() {
   let mut render_mgr = RenderMgr::new();
   let mut mgr = render_mgr.mgr.clone();
   
+  let cpu = cpu_name();
+  
   {
     let dpi = gl_window.get_hidpi_factor();
     let size = gl_window.get_inner_size().unwrap().to_physical(dpi);
-    let mut camera = mgr.camera.lock().unwrap();
-    camera.update_size(size.into());
+    mgr.update_size(size.into());
   }
   {
     let _textmgr = mgr.clone().textmgr.take().unwrap();
     let mut textmgr = _textmgr.lock().unwrap();
     textmgr.add_font(mgr.clone(), "pirate");
     textmgr.add_font(mgr.clone(), "sans");
-    textmgr.new_text(mgr.clone(), "Title", "raumEn SysInfo", "sans", 4.0, 0.0, 0.0, 1.0, true, true);
+    textmgr.new_text(mgr.clone(), "Title", "raumEn SysInfo", "pirate", 4.0, 0.0, 0.0, 1.0, true, true);
+    textmgr.new_text(mgr.clone(), "CPU", &cpu, "sans", 2.0, 0.0, 0.4, 1.0, true, true);
   }
   println!("Starting game loop.");
   let mut running = true;
@@ -88,8 +90,7 @@ fn main() {
             let dpi = gl_window.get_hidpi_factor();
             let size = logical_size.to_physical(dpi);
             gl_window.resize(size);
-            let mut camera = mgr.camera.lock().unwrap();
-            camera.update_size(size.into());
+            mgr.update_size(size.into());
           },
           _ => { mgr.handler_do(|handler| { handler.window_event(&event); }); }
         },
@@ -111,3 +112,32 @@ pub const EOF: &str = "\04";
 pub fn eof(string: &str) -> String {
   [string, EOF].join("")
 }
+
+pub fn call_cmd(cmd: &str) -> Result<String, String> {
+    use subprocess::{Exec,Redirection};
+    let out = Exec::shell(cmd)
+        .stdout(Redirection::Pipe)
+        .capture().map_err(|e|e.to_string())?
+        .stdout_str();
+    return Ok(out.trim().to_owned());
+}
+
+fn cpu_name() -> String {
+  match call_cmd("wmic CPU get NAME") {
+    Ok(_wmic) => {
+      match _cpu_name(&_wmic) {
+        Ok((_, out)) => { ["CPU: ".to_owned(), out].join("") }
+        _ => { "Could not get CPU Name".to_owned() }
+      }
+    }
+    _ => { "Could not get CPU Name".to_owned() }
+  }
+      
+}
+use nom::{multispace, rest_s};
+named!(_cpu_name<&str, String>,
+  do_parse!(
+    tag!("Name") >> multispace >> out: rest_s >>
+    ( out.to_owned() )
+  )
+);

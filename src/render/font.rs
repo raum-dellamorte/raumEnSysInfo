@@ -1,17 +1,10 @@
 
 use gl::*;
-// use gl::types::{GLuint, }; // GLfloat, GLenum, GLint, GLchar, GLsizeiptr, GLboolean, 
 use std::collections::{HashMap, HashSet};
-// use std::sync::{Arc, Mutex};
-// use CVOID;
 
 use gamemgr::GameMgr;
 use shader::gen_font_shader;
 use shader::Shader;
-// use text::{TextMgr, }; // RFontType, 
-// use texture::Texture;
-// use util::rvector::{Vector3f, }; // Vector2f, Vector4f, 
-// use util::rvertex::{RVertex, RVertex2D};
 
 pub struct RenderFont {
   pub shader: Shader,

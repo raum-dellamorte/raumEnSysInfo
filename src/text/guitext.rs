@@ -2,19 +2,19 @@
 
 
 use gamemgr::GameMgr;
-use text::{TextMgr, RTextMesh, }; // RFontType, 
-use util::rvector::{Vector2f, Vector3f, };
+use text::{TextMgr, RTextMesh, RFontEffect, }; // RFontType, 
+use util::rvector::{Vector2f, }; // Vector3f, 
 
 pub struct GuiText {
   pub font: String,
   pub label: String,
   pub text: String,
   pub position: Vector2f,
+  pub effect: RFontEffect,
   pub font_size: f32,
   pub line_max_size: f32,
   pub is_centered: bool,
   pub num_of_lines: u32,
-  pub colour: Vector3f,
   pub text_mesh_vao: u32,
   pub vertex_count: u32,
   pub loaded: bool,
@@ -26,11 +26,11 @@ impl GuiText {
       label: label.to_owned(),
       text: text.to_owned(),
       position: position,
+      effect: RFontEffect::new(),
       font_size: font_size,
       line_max_size: line_max_size,
       is_centered: is_centered,
       num_of_lines: 0,
-      colour: Vector3f::blank(),
       text_mesh_vao: 0,
       vertex_count: 0,
       loaded: false,
@@ -73,7 +73,7 @@ impl GuiText {
     // println!("Reloading GuiText");
     self.load(textmgr, mgr);
   }
-  pub fn set_colour(&mut self, r: f32, g: f32, b: f32) { self.colour.from_f32(r, g, b); }
+  pub fn set_colour(&mut self, r: f32, g: f32, b: f32) { self.effect.colour.from_f32(r, g, b); }
   pub fn set_mesh_info(&mut self, vao: u32, vert_count: u32) {
     self.text_mesh_vao = vao;
     self.vertex_count = vert_count;

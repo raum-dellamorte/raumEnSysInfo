@@ -9,6 +9,11 @@ pub fn gen_font_shader() -> Shader {
     "offset", 
     "colour", 
     "fontAtlas", 
+    "width",
+    "edge",
+    "widthBorder",
+    "edgeBorder",
+    "colourBorder",
   ))
   .load_defaults();
   // println!("Created font shader.");

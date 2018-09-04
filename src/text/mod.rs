@@ -5,6 +5,9 @@ pub mod textmgr;
 
 pub use text::textmgr::TextMgr;
 
+use shader::Shader;
+use util::{Vector2f , Vector3f, };
+
 use gamemgr::GameMgr;
 use text::guitext::GuiTextVals;
 // use text::metafile::MetaFile;
@@ -31,6 +34,39 @@ impl RFontType {
   }
   pub fn update_size(&mut self, mgr: GameMgr) {
     self.rtmc.update_size(mgr);
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct RFontEffect {
+  pub offset: Vector2f,
+  pub colour: Vector3f,
+  pub colour_border: Vector3f,
+  pub width: f32,
+  pub edge: f32,
+  pub width_border: f32,
+  pub edge_border: f32,
+}
+impl RFontEffect {
+  pub fn new() -> Self {
+    Self {
+      offset: Vector2f::blank(),
+      colour: Vector3f::blank(),
+      colour_border: Vector3f::new_isize(1, 1, 1),
+      width: 0.5,
+      edge: 0.05,
+      width_border: 0.4,
+      edge_border: 0.3,
+    }
+  }
+  pub fn load_to_shader(&self, shader: &Shader) {
+    shader.load_vec_2f("offset", &self.offset);
+    shader.load_vec_3f("colour", &self.colour);
+    shader.load_vec_3f("colourBorder", &self.colour_border);
+    shader.load_float("width", self.width);
+    shader.load_float("edge", self.edge);
+    shader.load_float("widthBorder", self.width_border);
+    shader.load_float("edgeBorder", self.edge_border);
   }
 }
 

@@ -58,10 +58,6 @@ impl GameMgr {
     let handler = self.handler.lock().unwrap();
     handler.timer.delta
   }
-  pub fn sec(&self) -> f32 {
-    let handler = self.handler.lock().unwrap();
-    handler.timer.sec
-  }
   pub fn handler_do<F>(&mut self, f: F)
     where F: Fn(&mut Handler) -> ()
   {

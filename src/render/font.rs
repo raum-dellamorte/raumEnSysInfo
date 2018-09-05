@@ -1,6 +1,6 @@
 
 use gl::*;
-use std::collections::{HashMap, HashSet};
+// use std::collections::{HashMap, HashSet};
 
 use gamemgr::GameMgr;
 use shader::gen_font_shader;
@@ -27,10 +27,12 @@ impl RenderFont {
     let _textmgr = mgr.textmgr.take().unwrap();
     let mut textmgr = _textmgr.lock().unwrap();
     self.shader.start();
-    let _tmp: HashMap<String, HashSet<String>> = (*textmgr).active_text.clone();
-    let fonts: Vec<&String> = _tmp.keys().clone().into_iter().collect();
+    let mut fonts = Vec::new();
+    for (font, _) in &textmgr.active_text {
+      fonts.push(font.to_owned());
+    }
     for font in fonts {
-      let tex_id = match textmgr.fonts.get_mut(font) {
+      let tex_id = match textmgr.fonts.get_mut(&font) {
         Some(x) => {
           let texs = mgr.textures.lock().unwrap();
           match texs.get(&x.tex_atlas) {
@@ -45,20 +47,24 @@ impl RenderFont {
         ActiveTexture(TEXTURE0);
         BindTexture(TEXTURE_2D, tex_id);
       }
-      for gtexts in textmgr.active_text.get(font) {
-        for gtstr in gtexts {
-          for gtext in textmgr.texts.get(gtstr) {
-            unsafe {
-              BindVertexArray(gtext.text_mesh_vao);
-              EnableVertexAttribArray(0);
-              EnableVertexAttribArray(1);
-              gtext.effect.load_to_shader(&self.shader);
-              self.shader.load_vec_2f("translation", &gtext.position);
-              DrawArrays(TRIANGLES, 0, gtext.vertex_count as i32);
-              DisableVertexAttribArray(0);
-              DisableVertexAttribArray(1);
-              BindVertexArray(0);
-            }
+      let mut gtstrs = Vec::new();
+      for gtexts in textmgr.active_text.get(&font) { for gtstr in gtexts {
+        gtstrs.push(gtstr.to_owned());
+      }}
+      for gtstr in gtstrs {
+        for gtext in textmgr.texts.get_mut(&gtstr) {
+          gtext.effect.anim_timer(mgr.clone());
+          gtext.effect.anim_border_colour();
+          unsafe {
+            BindVertexArray(gtext.text_mesh_vao);
+            EnableVertexAttribArray(0);
+            EnableVertexAttribArray(1);
+            gtext.effect.load_to_shader(&self.shader);
+            self.shader.load_vec_2f("translation", &gtext.position);
+            DrawArrays(TRIANGLES, 0, gtext.vertex_count as i32);
+            DisableVertexAttribArray(0);
+            DisableVertexAttribArray(1);
+            BindVertexArray(0);
           }
         }
       }

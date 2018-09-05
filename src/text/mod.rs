@@ -46,6 +46,13 @@ pub struct RFontEffect {
   pub edge: f32,
   pub width_border: f32,
   pub edge_border: f32,
+  delta: f32,
+  pub timer_r: f32,
+  pub timer_g: f32,
+  pub timer_b: f32,
+  pub max_r: f32,
+  pub max_g: f32,
+  pub max_b: f32,
 }
 impl RFontEffect {
   pub fn new() -> Self {
@@ -57,6 +64,13 @@ impl RFontEffect {
       edge: 0.05,
       width_border: 0.4,
       edge_border: 0.3,
+      delta: 0.0,
+      timer_r: 0.0,
+      timer_g: 0.0,
+      timer_b: 0.0,
+      max_r: 7.0,
+      max_g: 5.0,
+      max_b: 3.0,
     }
   }
   pub fn load_to_shader(&self, shader: &Shader) {
@@ -67,6 +81,24 @@ impl RFontEffect {
     shader.load_float("edge", self.edge);
     shader.load_float("widthBorder", self.width_border);
     shader.load_float("edgeBorder", self.edge_border);
+  }
+  pub fn anim_timer(&mut self, mgr: GameMgr) {
+    self.delta = mgr.delta();
+    self.timer_r += self.delta;
+    self.timer_g += self.delta;
+    self.timer_b += self.delta;
+    if self.timer_r >= self.max_r { self.timer_r -= self.max_r; }
+    if self.timer_g >= self.max_g { self.timer_g -= self.max_g; }
+    if self.timer_b >= self.max_b { self.timer_b -= self.max_b; }
+  }
+  pub fn anim_border_colour(&mut self) {
+    let r = self.timer_r / self.max_r;
+    let g = self.timer_g / self.max_g;
+    let b = self.timer_b / self.max_b;
+    let anim_r = ((360.0 * r) + 0.0).to_radians().cos().abs();
+    let anim_g = ((360.0 * g) + 0.0).to_radians().cos().abs();
+    let anim_b = ((360.0 * b) + 0.0).to_radians().cos().abs();
+    self.colour_border.from_f32(anim_r, anim_g, anim_b)
   }
 }
 

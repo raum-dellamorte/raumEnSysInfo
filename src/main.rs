@@ -9,6 +9,7 @@ extern crate image;
 extern crate time;
 extern crate cupid;
 extern crate sysinfo;
+extern crate systemstat;
 // extern crate subprocess;
 
 use gl::*;
@@ -17,6 +18,7 @@ use glutin::dpi::*;
 use glutin::GlContext;
 
 use sysinfo::SystemExt;
+use systemstat::{System, Platform};
 
 // const CVOID: *const c_void = 0 as *const c_void;
 
@@ -70,6 +72,7 @@ fn main() {
   let cpu = &cpu_name();
   let ram = &get_ram_total(system);
   let mut cpu_ram = mk_cpu_ram_str(cpu, ram, system);
+  let hdd = get_hdd();
   
   let mut fps: f32;
   let mut sec = 0.0;
@@ -84,8 +87,8 @@ fn main() {
     let mut textmgr = _textmgr.lock().unwrap();
     textmgr.add_font(mgr.clone(), "pirate");
     textmgr.add_font(mgr.clone(), "sans");
-    textmgr.new_text(mgr.clone(), "Title", "raumEn SysInfo", "pirate", 4.0, 0.0, 0.0, 1.0, true, true);
-    textmgr.new_text(mgr.clone(), "CPU RAM", &cpu_ram, "sans", 2.0, 0.0, 0.4, 1.0, true, true);
+    textmgr.new_text(mgr.clone(), "Title", "SysInfo", "pirate", 4.0, 0.0, 0.0, 1.0, true, true);
+    textmgr.new_text(mgr.clone(), "CPU RAM HDD", &[cpu_ram, hdd.clone()].join(""), "sans", 2.0, 0.0, 0.4, 1.0, true, true);
     textmgr.new_text(mgr.clone(), "FPS", "FPS: 0.0", "sans", 1.5, 0.0, 0.0, 0.3, false, true);
   }
   println!("Starting game loop.");
@@ -123,7 +126,7 @@ fn main() {
       cpu_ram = mk_cpu_ram_str(cpu, ram, system);
       let _textmgr = mgr.clone().textmgr.take().unwrap();
       let mut textmgr = _textmgr.lock().unwrap();
-      textmgr.update_text(mgr.clone(), "CPU RAM", &cpu_ram);
+      textmgr.update_text(mgr.clone(), "CPU RAM HDD", &[cpu_ram, hdd.clone()].join(""));
       textmgr.update_text(mgr.clone(), "FPS", &format!("FPS: {:.3}", (fps * 1000.0).round() / 1000.0 ) );
     }
     
@@ -185,4 +188,19 @@ fn get_ram_used(system: &mut sysinfo::System) -> String {
   system.refresh_all();
   let ram_used = (((system.get_used_memory() as f32 / 1024.0) / 1024.0) * 1000.0).round() / 1000.0;
   format!("Used Memory : {:.3} GB", ram_used )
+}
+
+fn get_hdd() -> String {
+  let sys = System::new();
+  let mut out = String::new();
+  match sys.mounts() {
+    Ok(mounts) => {
+      for mount in mounts.iter() {
+        out = format!("{}\n{} Size: {}; Free: {}",
+          out, mount.fs_mounted_on, mount.total, mount.avail);
+      }
+    }
+    Err(x) => println!("\nMounts: error: {}", x)
+  }
+  out
 }

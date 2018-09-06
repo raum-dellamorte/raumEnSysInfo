@@ -1,6 +1,6 @@
 [package]
 name = "raum-en-sysinfo"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Raum Dellamorte <elementalsin@gmail.com>"]
 
 [dependencies]
@@ -14,3 +14,4 @@ glutin = "0.17.0"
 subprocess = "0.1.13"
 cupid = "*"
 sysinfo = "0.5.7"
+systemstat = "0.1.3"

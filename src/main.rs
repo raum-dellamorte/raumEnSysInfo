@@ -7,6 +7,7 @@ extern crate glutin;
 #[macro_use] extern crate nom;
 extern crate image;
 extern crate time;
+#[macro_use] extern crate lazy_static;
 extern crate cupid;
 extern crate sysinfo;
 extern crate systemstat;

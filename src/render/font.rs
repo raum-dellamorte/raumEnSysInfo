@@ -53,7 +53,7 @@ impl RenderFont {
       }}
       for gtstr in gtstrs {
         for gtext in textmgr.texts.get_mut(&gtstr) {
-          gtext.effect.anim_timer(mgr.clone());
+          gtext.effect.anim_timer(mgr.delta());
           gtext.effect.anim_border_colour();
           unsafe {
             BindVertexArray(gtext.text_mesh_vao);

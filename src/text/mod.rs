@@ -3,15 +3,27 @@ pub mod metafile;
 pub mod rtmc;
 pub mod textmgr;
 
-pub use text::textmgr::TextMgr;
+pub use {
+  crate::{
+    text::{
+      textmgr::TextMgr,
+    },
+  },
+};
 
-use shader::Shader;
-use util::{Vector2f , Vector3f, };
-
-use gamemgr::GameMgr;
-use text::guitext::GuiTextVals;
-// use text::metafile::MetaFile;
-use text::rtmc::RTextMeshCreator;
+use {
+  crate::{
+    shader::Shader,
+    text::{
+      guitext::GuiTextVals,
+      rtmc::RTextMeshCreator,
+      // metafile::MetaFile,
+    },
+    util::{
+      Vector2f , Vector3f,
+    },
+  },
+};
 
 pub const SPACE_ASCII: u32 = 32;
 pub const NEWLINE_ASCII: u32 = 10;
@@ -23,17 +35,17 @@ pub struct RFontType {
   pub rtmc: RTextMeshCreator,
 }
 impl RFontType {
-  pub fn new(mgr: GameMgr, font: &str) -> Self {
+  pub fn new(aspect_ratio: f32, font: &str) -> Self {
     Self {
       tex_atlas: font.to_owned(),
-      rtmc: RTextMeshCreator::new(mgr, font),
+      rtmc: RTextMeshCreator::new(aspect_ratio, font),
     }
   }
   pub fn load_text(&mut self, text: &mut GuiTextVals) -> RTextMesh {
     self.rtmc.create_text_mesh(text)
   }
-  pub fn update_size(&mut self, mgr: GameMgr) {
-    self.rtmc.update_size(mgr);
+  pub fn update_size(&mut self, aspect_ratio: f32) {
+    self.rtmc.update_size(aspect_ratio);
   }
 }
 
@@ -82,8 +94,8 @@ impl RFontEffect {
     shader.load_float("widthBorder", self.width_border);
     shader.load_float("edgeBorder", self.edge_border);
   }
-  pub fn anim_timer(&mut self, mgr: GameMgr) {
-    self.delta = mgr.delta();
+  pub fn anim_timer(&mut self, delta: f32) {
+    self.delta = delta;
     self.timer_r += self.delta;
     self.timer_g += self.delta;
     self.timer_b += self.delta;

@@ -23,7 +23,7 @@ impl TextMgr {
   pub fn add_font(&mut self, mgr: GameMgr, fname: &str) {
     let mut mgr = mgr;
     // println!("Adding Font: {}", fname);
-    self.fonts.insert(fname.to_owned(), RFontType::new(mgr.clone(), fname));
+    self.fonts.insert(fname.to_owned(), RFontType::new(mgr.aspect_ratio(), fname));
     // println!("Adding Font Texture: {}", fname);
     mgr.new_texture(fname);
   }
@@ -75,7 +75,7 @@ impl TextMgr {
     if let Some(text) = self.texts.get_mut(label) {
       let mut text_batch = self.active_text.get_mut(&text.font);
       if text_batch.is_some() {
-        let mut hs = &mut text_batch.as_mut().unwrap();
+        let hs = &mut text_batch.as_mut().unwrap();
         hs.remove(label);
         rm = hs.is_empty();
         font = text.font.clone();
@@ -101,7 +101,7 @@ impl TextMgr {
     for font in &fonts {
       let mut fnt = self.fonts.remove(font);
       if let Some(ref mut fnt) = fnt {
-        fnt.update_size(mgr.clone());
+        fnt.update_size(mgr.aspect_ratio());
       }
       if fnt.is_some() {
         self.fonts.insert(font.to_owned(), fnt.unwrap());

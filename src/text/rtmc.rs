@@ -1,10 +1,13 @@
 
-
-
-use gamemgr::GameMgr;
-use text::{RChar, RLine, RWord, RTextMesh, NEWLINE_ASCII, SPACE_ASCII, LINE_HEIGHT, }; // RFontType, 
-use text::guitext::GuiTextVals;
-use text::metafile::MetaFile;
+use {
+  crate::{
+    text::{
+      RChar, RLine, RWord, RTextMesh, NEWLINE_ASCII, SPACE_ASCII, LINE_HEIGHT, 
+      guitext::GuiTextVals,
+      metafile::MetaFile
+    },
+  },
+};
 
 #[derive(Debug)]
 pub struct RTextMeshCreator {
@@ -14,16 +17,16 @@ pub struct RTextMeshCreator {
   pub metadata: MetaFile,
 }
 impl RTextMeshCreator {
-  pub fn new(mgr: GameMgr, file: &str) -> Self {
+  pub fn new(aspect_ratio: f32, file: &str) -> Self {
     Self {
       line_ht: LINE_HEIGHT,
       space_ascii: SPACE_ASCII,
       newline_ascii: NEWLINE_ASCII,
-      metadata: MetaFile::new(mgr, file),
+      metadata: MetaFile::new(aspect_ratio, file),
     }
   }
-  pub fn update_size(&mut self, mgr: GameMgr) {
-    self.metadata.update_size(mgr.aspect_ratio());
+  pub fn update_size(&mut self, aspect_ratio: f32) {
+    self.metadata.update_size(aspect_ratio);
     
   }
   pub fn create_text_mesh(&mut self, text: &mut GuiTextVals) -> RTextMesh {

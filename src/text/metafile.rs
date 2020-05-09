@@ -1,19 +1,36 @@
 
-use std::collections::HashMap;
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::path::Path;
-use std::str;
-use std::str::FromStr;
-
-use nom::{space, digit, float_s, }; // alpha, alphanumeric, 
-
-use gamemgr::GameMgr;
-use text::{RChar, }; // RLine, RWord, RFontType, SPACE_ASCII, LINE_HEIGHT, 
-use text::{LINE_HEIGHT, SPACE_ASCII};
-use eof;
+use {
+  std::{
+    // error::Error,
+    fs::File,
+    io::{
+      prelude::*,
+      BufReader,
+    },
+    path::Path,
+    str,
+    str::FromStr,
+  },
+  nom::{
+    character::complete::{
+      space1 as space,
+      digit1 as digit,
+      // alpha1, 
+      // alphanumeric1, 
+    },
+    number::complete::float,
+  },
+  crate::{
+    eof,
+    text::{
+      RChar, 
+      LINE_HEIGHT, 
+      SPACE_ASCII, 
+      // RLine, RWord, RFontType, 
+    },
+    util::HashMap,
+  }
+};
 
 pub fn test_noms() {
   test_get_info();
@@ -44,14 +61,18 @@ pub struct InfoVars {
   padding: Vec<u32>,
   spacing: Vec<u32>,
 }
-fn get_info(tstr: &str) -> ( InfoVars ) {
+fn get_info(tstr: &str) -> InfoVars {
   let eofs = eof(tstr);
   match _get_info(&eofs) {
     Ok((_, result)) => { result }
-    Err(e) => panic!("{}", e)
+    Err(e) => { match e {
+      nom::Err::Error((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Failure((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Incomplete(e) => { panic!("{:?}", e) }
+    }}
   }
 }
-named!(_get_info<&str, ( InfoVars ) >,
+named!(_get_info<&str, InfoVars >,
   do_parse!(
     tag!("info") >> space >>
     tag!("face=\"") >> face: take_until!("\"") >> char!('"') >> space >>
@@ -90,10 +111,14 @@ fn get_common(tstr: &str) -> CommonVars {
   let eofs = eof(tstr);
   match _get_common(&eofs) {
     Ok((_, result)) => { result }
-    Err(e) => panic!("{}", e)
+    Err(e) => { match e {
+      nom::Err::Error((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Failure((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Incomplete(e) => { panic!("{:?}", e) }
+    }}
   }
 }
-named!(_get_common<&str, ( CommonVars ) >,
+named!(_get_common<&str, CommonVars >,
   do_parse!(
     tag!("common") >> space >>
     tag!("lineHeight=") >> line_height: u32_digit >> space >>
@@ -120,10 +145,14 @@ fn get_page(tstr: &str) -> PageVars {
   let eofs = eof(tstr);
   match _get_page(&eofs) {
     Ok((_, result)) => { result }
-    Err(e) => panic!("{}", e)
+    Err(e) => { match e {
+      nom::Err::Error((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Failure((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Incomplete(e) => { panic!("{:?}", e) }
+    }}
   }
 }
-named!(_get_page<&str, ( PageVars ) >,
+named!(_get_page<&str, PageVars >,
   do_parse!(
     tag!("page") >> space >>
     tag!("id=") >> id: u32_digit >> space >>
@@ -137,14 +166,18 @@ pub fn test_get_page() {
   println!("{:?}", test);
 }
 // chars count=95
-fn get_char_count(tstr: &str) -> ( u32 ) {
+fn get_char_count(tstr: &str) -> u32 {
   let eofs = eof(tstr);
   match _get_char_count(&eofs) {
     Ok((_, result)) => { result }
-    Err(e) => panic!("{}", e)
+    Err(e) => { match e {
+      nom::Err::Error((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Failure((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Incomplete(e) => { panic!("{:?}", e) }
+    }}
   }
 }
-named!(_get_char_count<&str, ( u32 ) >,
+named!(_get_char_count<&str, u32 >,
   do_parse!(
     tag!("chars") >> space >> tag!("count=") >> cnt: u32_digit >> ( cnt )
   )
@@ -172,10 +205,14 @@ fn get_char(tstr: &str) -> CharVars {
   let eofs = eof(tstr);
   match _get_char(&eofs) {
     Ok((_, result)) => { result }
-    Err(e) => panic!("{}", e)
+    Err(e) => { match e {
+      nom::Err::Error((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Failure((s,e)) => { panic!("{:?} {}", e,s) }
+      nom::Err::Incomplete(e) => { panic!("{:?}", e) }
+    }}
   }
 }
-named!(_get_char<&str, ( CharVars ) >,
+named!(_get_char<&str, CharVars >,
   do_parse!(
     tag!("char") >> space >>
     tag!("id=") >> id: u32_digit >> space >>
@@ -183,8 +220,8 @@ named!(_get_char<&str, ( CharVars ) >,
     tag!("y=") >> y: i32_digit >> space >>
     tag!("width=") >> width: i32_digit >> space >>
     tag!("height=") >> height: i32_digit >> space >>
-    tag!("xoffset=") >> xoffset: float_s >> space >>
-    tag!("yoffset=") >> yoffset: float_s >> space >>
+    tag!("xoffset=") >> xoffset: float >> space >>
+    tag!("yoffset=") >> yoffset: float >> space >>
     tag!("xadvance=") >> xadvance: i32_digit >> space >>
     tag!("page=") >> page: u32_digit >> space >>
     tag!("chnl=") >> chnl: u32_digit >> space >>

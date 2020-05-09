@@ -6,10 +6,10 @@ authors = ["Raum Dellamorte <elementalsin@gmail.com>"]
 [dependencies]
 env_logger = "0.7.1"
 log = "0.4"
-nom = "^4.0"
 gl = "0.10.0"
 glutin = "0.17.0"
 image = "0.23.4"
+nom = "5.1.1"
 time = "0.2.15"
 subprocess = "0.2.4"
 cupid = "*"

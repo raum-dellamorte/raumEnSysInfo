@@ -10,6 +10,7 @@ extern crate time;
 extern crate cupid;
 extern crate sysinfo;
 extern crate systemstat;
+extern crate bytesize;
 // extern crate subprocess;
 
 use {
@@ -255,6 +256,13 @@ fn get_hdd() -> String {
   match sys.mounts() {
     Ok(mounts) => {
       for mount in mounts.iter() {
+        if mount.total == bytesize::ByteSize::b(0) { continue; }
+        let mnt = mount.fs_mounted_on.clone();
+        if is_dir_or_subdir_linux(&mnt, "/boot") { continue; }
+        if is_dir_or_subdir_linux(&mnt, "/dev") { continue; }
+        if is_dir_or_subdir_linux(&mnt, "/run") { continue; }
+        if is_dir_or_subdir_linux(&mnt, "/snap") { continue; }
+        if is_dir_or_subdir_linux(&mnt, "/sys") { continue; }
         out = format!("{}\n{} Size: {}; Free: {}",
           out, mount.fs_mounted_on, mount.total, mount.avail);
       }
@@ -262,4 +270,15 @@ fn get_hdd() -> String {
     Err(x) => println!("\nMounts: error: {}", x)
   }
   out
+}
+
+fn is_dir_or_subdir_linux(test: &str, path: &str) -> bool {
+  let tc = test.chars().count();
+  let pc = path.chars().count();
+  let pc2 = pc + 1;
+  let path2: &str = &format!("{}/", path);
+  if (tc == pc && test == path) 
+  || (tc > pc2 && &test[..pc2] == path2)
+  { return true; }
+  false
 }

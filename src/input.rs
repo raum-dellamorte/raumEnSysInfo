@@ -1,13 +1,22 @@
-use std::collections::HashMap;
-use glutin::WindowEvent as WEvent;
-use glutin::DeviceEvent as DEvent;
-use glutin::KeyboardInput as KB;
-use glutin::MouseButton as MB;
-use glutin::ElementState::{Pressed, Released};
-use glutin::VirtualKeyCode as VKC;
-use glutin::ModifiersState as MKS;
 
-use timer::Timer;
+use {
+  glutin::{
+    dpi::PhysicalPosition,
+    event::{
+      WindowEvent as WEvent,
+      DeviceEvent as DEvent,
+      KeyboardInput as KB,
+      MouseButton as MB,
+      ElementState::{Pressed, Released},
+      VirtualKeyCode as VKC,
+      // ModifiersState as MKS,
+    },
+  },
+  crate::{
+    timer::Timer,
+    util::HashMap,
+  },
+};
 
 pub struct Handler {
   pub timer: Timer,
@@ -31,18 +40,31 @@ impl Handler {
       WEvent::CursorMoved { position: pos, ..} => {
         self.cursor_pos = Some((pos.x,pos.y));
       }
+      WEvent::CursorEntered { device_id: _, } => {
+        // mouse moved, probably
+      }
+      WEvent::CursorLeft { device_id: _, } => {
+        // mouse moved, probably
+      }
+      WEvent::AxisMotion { device_id: _, axis: _, value: _, } => {
+        // mouse moved, probably
+      }
       WEvent::MouseInput { state: Pressed, button: bttn, ..} => {
         self.mouse.insert(*bttn, true);
       }
       WEvent::MouseInput { state: Released, button: bttn, ..} => {
         self.mouse.insert(*bttn, false);
       }
-      WEvent::KeyboardInput { input: KB { virtual_keycode: Some(bttn), state: Pressed, modifiers: modkey, ..}, ..} => {
-        // print!("{:?}-{}-{}-{}-{}", bttn, modkey.shift, modkey.ctrl, modkey.alt, modkey.logo);
-        self.kb.insert(key_code(&bttn, &modkey), true);
+      WEvent::Moved(PhysicalPosition { x: _, y: _, }) => {
+        // Window moved
       }
-      WEvent::KeyboardInput { input: KB { virtual_keycode: Some(bttn), state: Released, modifiers: modkey, ..}, ..} => {
-        self.kb.insert(key_code(&bttn, &modkey), false);
+      WEvent::ModifiersChanged { .. } => {  }
+      WEvent::KeyboardInput { input: KB { virtual_keycode: Some(bttn), state: Pressed, ..}, ..} => {
+        // print!("{:?}-{}-{}-{}-{}", bttn, modkey.shift, modkey.ctrl, modkey.alt, modkey.logo);
+        self.kb.insert(key_code(&bttn), true);
+      }
+      WEvent::KeyboardInput { input: KB { virtual_keycode: Some(bttn), state: Released, ..}, ..} => {
+        self.kb.insert(key_code(&bttn), false);
       }
       e => println!("Window Event:\n  {:?}", e)
       // _ => ()
@@ -65,13 +87,13 @@ impl Handler {
     }
   }
   pub fn read_kb_single(&mut self, kc: KeyCode) -> bool {
-    match self.kb.insert(key_code(&kc.key, &kc.modkey), false) {
+    match self.kb.insert(key_code(&kc.key), false) {
       Some(tf) => { return tf; },
       None     => { return false; },
     }
   }
   pub fn read_kb_multi(&self, kc: KeyCode) -> bool {
-    match self.kb.get(&key_code(&kc.key, &kc.modkey)) {
+    match self.kb.get(&key_code(&kc.key)) {
       Some(&tf) => { return tf; },
       None      => { return false; },
     }
@@ -103,33 +125,15 @@ impl Handler {
 }
 pub struct KeyCode {
   pub key: VKC,
-  pub modkey: MKS,
 }
 impl KeyCode {
   pub fn new(key: VKC) -> Self {
     KeyCode {
       key: key,
-      modkey: MKS {shift: false, ctrl: false, alt: false, logo: false},
     }
   }
   pub fn to_str(&self) -> String {
-    key_code(&self.key, &self.modkey)
-  }
-  pub fn shift(&mut self) -> &mut Self {
-    self.modkey.shift = true;
-    self
-  }
-  pub fn ctrl(&mut self) -> &mut Self {
-    self.modkey.ctrl = true;
-    self
-  }
-  pub fn alt(&mut self) -> &mut Self {
-    self.modkey.alt = true;
-    self
-  }
-  pub fn logo(&mut self) -> &mut Self {
-    self.modkey.logo = true;
-    self
+    key_code(&self.key)
   }
 }
 pub struct KeyCodes {
@@ -146,59 +150,11 @@ impl KeyCodes {
   pub fn to_str_vec(&self) -> Vec<String> {
     let mut out = Vec::new();
     for key in &self.keys {
-      out.push(key_code(&key.key, &key.modkey));
+      out.push(key_code(&key.key));
     }
     out
   }
-  pub fn shift(&mut self, i: usize) -> &mut Self {
-    if i < self.keys.len() {
-      self.keys[i].shift();
-    }
-    self
-  }
-  pub fn shift_all(&mut self) -> &mut Self {
-    for key in &mut self.keys {
-      key.shift();
-    }
-    self
-  }
-  pub fn ctrl(&mut self, i: usize) -> &mut Self {
-    if i < self.keys.len() {
-      self.keys[i].ctrl();
-    }
-    self
-  }
-  pub fn ctrl_all(&mut self) -> &mut Self {
-    for key in &mut self.keys {
-      key.ctrl();
-    }
-    self
-  }
-  pub fn alt(&mut self, i: usize) -> &mut Self {
-    if i < self.keys.len() {
-      self.keys[i].alt();
-    }
-    self
-  }
-  pub fn alt_all(&mut self) -> &mut Self {
-    for key in &mut self.keys {
-      key.alt();
-    }
-    self
-  }
-  pub fn logo(&mut self, i: usize) -> &mut Self {
-    if i < self.keys.len() {
-      self.keys[i].logo();
-    }
-    self
-  }
-  pub fn logo_all(&mut self) -> &mut Self {
-    for key in &mut self.keys {
-      key.logo();
-    }
-    self
-  }
 }
-pub fn key_code(bttn: &VKC, modkey: &MKS) -> String {
-  format!("{:?}-{}-{}-{}-{}", bttn, modkey.shift, modkey.ctrl, modkey.alt, modkey.logo)
+pub fn key_code(bttn: &VKC) -> String {
+  format!("{:?}", bttn)
 }

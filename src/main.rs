@@ -12,15 +12,20 @@ extern crate sysinfo;
 extern crate systemstat;
 // extern crate subprocess;
 
-use gl::*;
-// use std::os::raw::c_void;
-use glutin::dpi::*;
-use glutin::GlContext;
-
-use sysinfo::SystemExt;
-use systemstat::{System, Platform};
-
-// const CVOID: *const c_void = 0 as *const c_void;
+use {
+  gl::*,
+  glutin::{
+    // dpi::*,
+    event::{Event, WindowEvent, Event::DeviceEvent, },
+    event_loop::{ControlFlow, EventLoop, },
+  },
+  sysinfo::SystemExt,
+  systemstat::{System, Platform},
+  // crate::{
+  //   // render::{ * },
+  //   // shader::{ Shader, },
+  // },
+};
 
 // in project stuff
 pub mod display; // I think I still need this for storing window dimensions
@@ -46,40 +51,49 @@ fn main() {
   // use text::metafile::test_noms;
   // test_noms();
   
-  let mut events_loop = glutin::EventsLoop::new();
-  let window = glutin::WindowBuilder::new()
+  // Specify OpenGL version
+  let gl_request = glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 3));
+  let gl_profile = glutin::GlProfile::Core;
+  // Create a window
+  let el = EventLoop::new();
+  let wb = glutin::window::WindowBuilder::new()
     .with_title("RaumEn SysInfo")
-    .with_dimensions(LogicalSize::new(640.0, 480.0));
-  let context = glutin::ContextBuilder::new()
-    .with_vsync(true);
-  let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+    .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0))
+    .with_maximized(false);
+  let windowed_context = glutin::ContextBuilder::new()
+    .with_gl(gl_request)
+    .with_gl_profile(gl_profile)
+    .build_windowed(wb, &el)
+    .unwrap();
   
+  let windowed_context = unsafe { windowed_context.make_current().unwrap() };
+  // Set up OpenGL
   unsafe {
-    gl_window.make_current().unwrap();
-  }
-  
-  unsafe {
-    load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
+    load_with(|symbol| windowed_context.context().get_proc_address(symbol) as *const _);
     ClearColor(0.0, 1.0, 0.0, 1.0);
   }
   
   let mut render_mgr = RenderMgr::new();
   let mut mgr = render_mgr.mgr.clone();
   
-  let mut _system = sysinfo::System::new();
-  let system = &mut _system;
+  let mut system = sysinfo::System::new();
   
-  let cpu = &cpu_name();
-  let ram = &get_ram_total(system);
-  let mut cpu_ram = mk_cpu_ram_str(cpu, ram, system);
+  let cpu = cpu_name();
+  let ram = get_ram_total(&mut system);
+  let cpu_ram = mk_cpu_ram_str(&cpu, &ram, &mut system);
   let hdd = get_hdd();
   
-  let mut fps: f32;
+  let mut fps: f32 = 30.0;
   let mut sec = 0.0;
   
-  {
-    let dpi = gl_window.get_hidpi_factor();
-    let size = gl_window.get_inner_size().unwrap().to_physical(dpi);
+  { // Here, we're getting the size of the window in pixels
+    // and passing it to the update_size() method. It in turn
+    // updates the Projection Matrix and passes that to 
+    // ALL THE SHADERS, so if you add a SHADER, you need
+    // to REMEMBER to add that shader to the update_size()
+    // method near the bottom of this file.
+    // let dpi = windowed_context.window().get_hidpi_factor();
+    let size: glutin::dpi::PhysicalSize<u32> = windowed_context.window().inner_size();
     mgr.update_size(size.into());
   }
   {
@@ -91,31 +105,72 @@ fn main() {
     textmgr.new_text(mgr.clone(), "CPU RAM HDD", &[cpu_ram, hdd.clone()].join(""), "sans", 2.0, 0.0, 0.4, 1.0, true, true);
     textmgr.new_text(mgr.clone(), "FPS", "FPS: 0.0", "sans", 1.5, 0.0, 0.0, 0.3, false, true);
   }
-  println!("Starting game loop.");
-  let mut running = true;
-  while running {
-    mgr.handler_do(|handler| {
-      handler.timer.tick();
-      handler.reset_delta();
-    });
-    events_loop.poll_events(|event| {
-      match event {
-        glutin::Event::WindowEvent{ event, .. } => match event {
-          glutin::WindowEvent::CloseRequested => running = false,
-          glutin::WindowEvent::Resized(logical_size) => {
-            let dpi = gl_window.get_hidpi_factor();
-            let size = logical_size.to_physical(dpi);
-            gl_window.resize(size);
-            mgr.update_size(size.into());
-          },
-          _ => { mgr.handler_do(|handler| { handler.window_event(&event); }); }
-        },
-        glutin::Event::DeviceEvent{ event, ..} => {
-          mgr.handler_do(|handler| { handler.device_event(&event); });
-        }
-        e => println!("Other Event:\n{:?}", e)
+  
+  // Game loop!
+  println!("Starting main loop.");
+  el.run(move |event, _, control_flow| {
+    // *control_flow = ControlFlow::Wait;
+    {
+      mgr.handler_do(|handler| {
+        handler.timer.tick();
+        handler.reset_delta();
+      });
+    }
+    
+    match event {
+      Event::LoopDestroyed => {
+        println!("Cleaning Up...");
+        // Clean up
+        render_mgr.clean_up();
+        return
       }
-    });
+      Event::WindowEvent { event, .. } => match event {
+        WindowEvent::CloseRequested => {
+          *control_flow = ControlFlow::Exit
+        },
+        WindowEvent::Resized(size) => {
+          windowed_context.resize(size);
+          mgr.update_size(size.into());
+        },
+        _ => { mgr.handler_do(|handler| { handler.window_event(&event); }); }
+      },
+      DeviceEvent{ event, ..} => { mgr.handler_do(|handler| { handler.device_event(&event); }); }
+      Event::NewEvents( _time ) => {
+        // Emitted when new events arrive from the OS to be processed.
+        // 
+        // This event type is useful as a place to put code that should be done before you start processing events, such as 
+        // updating frame timing information for benchmarking or checking the StartCause][crate::event::StartCause] to see 
+        // if a timer set by [ControlFlow::WaitUntil has elapsed.
+      }
+      Event::MainEventsCleared => {
+        // Emitted when all of the event loop's input events have been processed and redraw processing is about to begin.
+        
+        // This event is useful as a place to put your code that should be run after all state-changing events have been 
+        // handled and you want to do stuff (updating state, performing calculations, etc) that happens as the "main body" 
+        // of your event loop. 
+        // If your program draws graphics, it's usually better to do it in response to Event::RedrawRequested, which gets 
+        // emitted immediately after this event.
+      }
+      Event::RedrawRequested(_) => {
+        // Emitted after MainEventsCleared when a window should be redrawn.
+        
+        // This gets triggered in two scenarios:
+        
+        // - The OS has performed an operation that's invalidated the window's contents (such as resizing the window).
+        // - The application has explicitly requested a redraw via Window::request_redraw.
+        
+        // During each iteration of the event loop, Winit will aggregate duplicate redraw requests into a single event, 
+        // to help avoid duplicating rendering work.
+      }
+      Event::RedrawEventsCleared => {
+        // Emitted after all RedrawRequested events have been processed and control flow is about to be taken away from 
+        // the program. If there are no RedrawRequested events, it is emitted immediately after MainEventsCleared.
+        
+        // This event is useful for doing any cleanup or bookkeeping work after all the rendering tasks have been completed.
+      }
+      e => println!("Other Event:\n{:?}", e)
+    }
+    // *** Do per frame calculations such as movement
     {
       let handler = mgr.handler.lock().unwrap();
       fps = handler.timer.fps;
@@ -123,18 +178,22 @@ fn main() {
     }
     if sec >= 1.0 {
       sec -= 1.0;
-      cpu_ram = mk_cpu_ram_str(cpu, ram, system);
+      let cpu_ram = mk_cpu_ram_str(&cpu, &ram, &mut system);
       let _textmgr = mgr.clone().textmgr.take().unwrap();
       let mut textmgr = _textmgr.lock().unwrap();
       textmgr.update_text(mgr.clone(), "CPU RAM HDD", &[cpu_ram, hdd.clone()].join(""));
       textmgr.update_text(mgr.clone(), "FPS", &format!("FPS: {:.3}", (fps * 1000.0).round() / 1000.0 ) );
     }
     
+    // *** Drawing phase
     render_mgr.render();
     
-    gl_window.swap_buffers().unwrap();
-  }
-  render_mgr.clean_up();
+    // _fbo_final.blit_to_screen(&world);
+    
+    
+    // Write the new frame to the screen!
+    windowed_context.swap_buffers().unwrap();
+  });
 }
 
 pub const EOF: &str = "\04";
@@ -165,7 +224,7 @@ fn mk_cpu_ram_str(cpu: &str, ram: &str, system: &mut sysinfo::System) -> String 
 }
 
 fn cpu_name() -> String {
-  use cupid;
+  // use cupid;
   let info = cupid::master();
   match info {
     Some(x) => {

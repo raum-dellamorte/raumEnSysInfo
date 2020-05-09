@@ -43,7 +43,7 @@ impl Loader {
     assert!(vbo_id != 0);
     self.vbos.push(vbo_id);
     BindBuffer(ARRAY_BUFFER, vbo_id);
-    use std::mem;
+    // use std::mem;
     BufferData(ARRAY_BUFFER,
       (data.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
       mem::transmute(&data[0]),
@@ -56,7 +56,7 @@ impl Loader {
     GenBuffers(1, &mut vbo_id);
     self.vbos.push(vbo_id);
     BindBuffer(ELEMENT_ARRAY_BUFFER, vbo_id);
-    use std::mem;
+    // use std::mem;
     let _idxs = indices_to_gluints(idxs);
     BufferData(ELEMENT_ARRAY_BUFFER,
       (_idxs.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
@@ -67,7 +67,7 @@ impl Loader {
     BindVertexArray(0_u32);
   }}
   pub fn load_texture(&mut self, tex_name: &str) -> Texture {
-    use image;
+    // use image;
     use std::path::Path;
     let path: &str = &format!("res/img/{}.png", tex_name);
     let img = match image::open(&Path::new(path)) {

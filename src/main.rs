@@ -85,7 +85,8 @@ fn main() {
   let hdd = get_hdd();
   
   let mut fps: f32 = 30.0;
-  let mut sec = 0.0;
+  let mut once_per_sec = false;
+  let mut clean_up_time = false;
   
   { // Here, we're getting the size of the window in pixels
     // and passing it to the update_size() method. It in turn
@@ -111,24 +112,17 @@ fn main() {
   println!("Starting main loop.");
   el.run(move |event, _, control_flow| {
     // *control_flow = ControlFlow::Wait;
-    {
-      mgr.handler_do(|handler| {
-        handler.timer.tick();
-        handler.reset_delta();
-      });
-    }
     
     match event {
       Event::LoopDestroyed => {
         println!("Cleaning Up...");
         // Clean up
         render_mgr.clean_up();
+        clean_up_time = true;
         return
       }
       Event::WindowEvent { event, .. } => match event {
-        WindowEvent::CloseRequested => {
-          *control_flow = ControlFlow::Exit
-        },
+        WindowEvent::CloseRequested => { *control_flow = ControlFlow::Exit; },
         WindowEvent::Resized(size) => {
           windowed_context.resize(size);
           mgr.update_size(size.into());
@@ -151,6 +145,28 @@ fn main() {
         // of your event loop. 
         // If your program draws graphics, it's usually better to do it in response to Event::RedrawRequested, which gets 
         // emitted immediately after this event.
+        {
+          let mut handler = mgr.handler.lock().unwrap();
+          handler.timer.tick();
+          handler.reset_delta();
+          if handler.timer.once_per_sec() {
+            fps = handler.timer.fps;
+            once_per_sec = true;
+          }
+        }
+        if once_per_sec {
+          once_per_sec = false;
+          println!("Once per second FPS: {}", &format!("FPS: {:.3}", (fps * 1000.0).round() / 1000.0 ) );
+          let cpu_ram = mk_cpu_ram_str(&cpu, &ram, &mut system);
+          let _textmgr = mgr.clone().textmgr.take().unwrap();
+          let mut textmgr = _textmgr.lock().unwrap();
+          textmgr.update_text(mgr.clone(), "CPU RAM HDD", &[cpu_ram, hdd.clone()].join(""));
+          textmgr.update_text(mgr.clone(), "FPS", &format!("FPS: {:.3}", (fps * 1000.0).round() / 1000.0 ) );
+        }
+        
+        
+        
+        windowed_context.window().request_redraw();
       }
       Event::RedrawRequested(_) => {
         // Emitted after MainEventsCleared when a window should be redrawn.
@@ -162,38 +178,26 @@ fn main() {
         
         // During each iteration of the event loop, Winit will aggregate duplicate redraw requests into a single event, 
         // to help avoid duplicating rendering work.
+        
+        if clean_up_time { return; }
+        
+        // *** Drawing phase
+        render_mgr.render();
+        // _fbo_final.blit_to_screen(&world);
+        
+        // Write the new frame to the screen!
+        windowed_context.swap_buffers().unwrap();
       }
       Event::RedrawEventsCleared => {
         // Emitted after all RedrawRequested events have been processed and control flow is about to be taken away from 
         // the program. If there are no RedrawRequested events, it is emitted immediately after MainEventsCleared.
         
         // This event is useful for doing any cleanup or bookkeeping work after all the rendering tasks have been completed.
+        
+        
       }
       e => println!("Other Event:\n{:?}", e)
     }
-    // *** Do per frame calculations such as movement
-    {
-      let handler = mgr.handler.lock().unwrap();
-      fps = handler.timer.fps;
-      sec += handler.timer.delta;
-    }
-    if sec >= 1.0 {
-      sec -= 1.0;
-      let cpu_ram = mk_cpu_ram_str(&cpu, &ram, &mut system);
-      let _textmgr = mgr.clone().textmgr.take().unwrap();
-      let mut textmgr = _textmgr.lock().unwrap();
-      textmgr.update_text(mgr.clone(), "CPU RAM HDD", &[cpu_ram, hdd.clone()].join(""));
-      textmgr.update_text(mgr.clone(), "FPS", &format!("FPS: {:.3}", (fps * 1000.0).round() / 1000.0 ) );
-    }
-    
-    // *** Drawing phase
-    render_mgr.render();
-    
-    // _fbo_final.blit_to_screen(&world);
-    
-    
-    // Write the new frame to the screen!
-    windowed_context.swap_buffers().unwrap();
   });
 }
 

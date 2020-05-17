@@ -6,6 +6,7 @@ pub mod textmgr;
 pub use {
   crate::{
     text::{
+      guitext::GuiText,
       textmgr::TextMgr,
     },
   },
